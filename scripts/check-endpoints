@@ -66,6 +66,7 @@ try:
         '/loan/delete/random',
         '/loan/manage/random',
         '/loan/pay/random',
+        '/check/invariants',
     ]
 
     missing = [e for e in expected if e not in routes]

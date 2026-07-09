@@ -19,6 +19,7 @@ from workload import logger
 from workload.assertions import register_assertions
 from workload.check_xrpld_sync_state import is_xrpld_synced
 from workload.config import conf_file, config_file
+from workload.invariants import check_ledger_invariants
 from workload.models import (
     AMM,
     DID,
@@ -219,6 +220,10 @@ def create_app(workload: Workload) -> FastAPI:
     @app.get("/probe/network")
     async def _probe_network(w: Workload = Depends(get_workload)) -> Response:
         return Response(status_code=200 if await probe_network(w) else 503)
+
+    @app.get("/check/invariants")
+    async def _check_invariants(w: Workload = Depends(get_workload)) -> Response:
+        return Response(status_code=200 if await check_ledger_invariants(w) else 503)
 
     for name, path, handler_fn, args_fn, _ in REGISTRY:
         app.get(path)(_make_endpoint(path, name, handler_fn, args_fn))

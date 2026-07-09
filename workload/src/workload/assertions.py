@@ -8,6 +8,15 @@ _LOC_FILE = "workload/assertions.py"
 _LOC_CLASS = ""
 _LOC_COL = 0
 
+# Ledger-state invariant probe (invariants.py, driven by anytime_check_ledger_invariants.sh).
+# The offer-book invariants are must_hit=False: they only evaluate when a queried book
+# holds resting offers, which isn't guaranteed for a whole run.
+INV_XRP_NON_NEGATIVE = "workload::always : xrp_balance_non_negative"
+INV_OFFER_FIELDS = "workload::always : offer_has_required_fields"
+INV_OFFER_POSITIVE = "workload::always : offer_amounts_positive"
+INV_OFFER_SORTED = "workload::always : offers_sorted_by_quality"
+INV_OFFER_BOOK_HAS_OFFERS = "workload::sometimes : offer_book_has_offers"
+
 # Inner batch txns (XLS-56d) consolidate effects into the outer Batch's meta, so
 # their own AffectedNodes may be empty — skip to avoid false invariant fires.
 _TF_INNER_BATCH_TXN = int(TransactionFlag.TF_INNER_BATCH_TXN)
@@ -148,6 +157,33 @@ def _emit_catalog_entry(message: str, assert_type: str, display_type: str, must_
     )
 
 
+def assert_invariant(
+    condition: bool,
+    message: str,
+    details: dict,
+    *,
+    assert_type: str = "always",
+    display_type: str = "Always",
+    must_hit: bool = True,
+) -> None:
+    """Fire a fixed-name ledger-state invariant (see invariants.py)."""
+    assert_raw(
+        condition=condition,
+        message=message,
+        details=details,
+        loc_filename=_LOC_FILE,
+        loc_function="assert_invariant",
+        loc_class=_LOC_CLASS,
+        loc_begin_line=0,
+        loc_begin_column=_LOC_COL,
+        hit=True,
+        must_hit=must_hit,
+        assert_type=assert_type,
+        display_type=display_type,
+        assert_id=message,
+    )
+
+
 def assert_network_functional(ok: bool, engine_result: str) -> None:
     """Post-fault liveness: at least one probe payment must validate tesSUCCESS."""
     assert_raw(
@@ -207,6 +243,15 @@ def register_assertions() -> None:
         "Sometimes",
         must_hit=True,
     )
+    # Ledger-state invariant probe. xrp_balance_non_negative reliably evaluates every
+    # cycle (genesis accounts are always queryable on xrpld) so must_hit=True doubles
+    # as a "probe ran" signal; the offer-book invariants are must_hit=False (a book
+    # may stay empty for a whole run).
+    _emit_catalog_entry(INV_XRP_NON_NEGATIVE, "always", "Always", must_hit=True)
+    _emit_catalog_entry(INV_OFFER_FIELDS, "always", "Always", must_hit=False)
+    _emit_catalog_entry(INV_OFFER_POSITIVE, "always", "Always", must_hit=False)
+    _emit_catalog_entry(INV_OFFER_SORTED, "always", "Always", must_hit=False)
+    _emit_catalog_entry(INV_OFFER_BOOK_HAS_OFFERS, "sometimes", "Sometimes", must_hit=False)
     for setup_key in [
         "gateways",
         "trust_lines",

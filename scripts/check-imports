@@ -32,6 +32,7 @@ from workload.transactions.lending import (
 )
 from workload.assertions import tx_submitted, tx_result, register_assertions
 from workload.probe import probe_network
+from workload.invariants import check_ledger_invariants
 from workload.submit import submit_tx
 from workload.fuzz import submit_fuzzed, fuzz_mutate
 from workload.sequence import SequenceTracker
